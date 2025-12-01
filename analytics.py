@@ -322,6 +322,7 @@ class CoffeeAnalytics:
         
         self.df['transaction_segment'] = pd.cut(self.df['money'], bins=bins, labels=labels)
         
+        # observed=False ensures all segment categories are included even if empty
         segment_analysis = self.df.groupby('transaction_segment', observed=False).agg({
             'money': ['sum', 'count', 'mean']
         }).reset_index()
@@ -467,9 +468,10 @@ class CoffeeAnalytics:
         plt.figure(figsize=(10, 6))
         bars = plt.bar(daily_stats['day_name'], daily_stats['total_sales'], color='purple', alpha=0.7)
         
-        # Highlight busiest day
+        # Highlight busiest day - find position in the sorted dataframe
         busiest_idx = daily_stats['total_sales'].idxmax()
-        bars[list(daily_stats.index).index(busiest_idx)].set_color('gold')
+        bar_position = daily_stats.index.get_loc(busiest_idx)
+        bars[bar_position].set_color('gold')
         
         plt.title('Sales by Day of Week', fontsize=14)
         plt.xlabel('Day', fontsize=12)
