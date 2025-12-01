@@ -103,21 +103,35 @@ df['day_of_week'] = df['datetime'].dt.day_name()
 df['month'] = df['datetime'].dt.month_name()
 df['date'] = df['datetime'].dt.date
 
+# Constants
+UNKNOWN_DAY_ORDER = 7
+
 # Hourly sales analysis
 hourly_sales = df.groupby('hour')['money'].agg(['sum', 'count']).reset_index()
 hourly_sales.rename(columns={'sum': 'total_sales', 'count': 'transactions'}, inplace=True)
-peak_hour = hourly_sales.loc[hourly_sales['total_sales'].idxmax(), 'hour']
-print(f"\n5. Peak Sales Hour: {int(peak_hour)}:00 - {int(peak_hour)+1}:00")
+
+peak_hour = None
+if not hourly_sales.empty:
+    peak_hour = hourly_sales.loc[hourly_sales['total_sales'].idxmax(), 'hour']
+    print(f"\n5. Peak Sales Hour: {int(peak_hour)}:00 - {int(peak_hour)+1}:00")
+else:
+    print("\n5. Peak Sales Hour: No hourly data available")
 
 # Day of week analysis
 daily_pattern = df.groupby('day_of_week')['money'].agg(['sum', 'count']).reset_index()
 daily_pattern.rename(columns={'sum': 'total_sales', 'count': 'transactions'}, inplace=True)
 # Sort by weekday order
 day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-daily_pattern['day_order'] = daily_pattern['day_of_week'].apply(lambda x: day_order.index(x) if x in day_order else 7)
+daily_pattern['day_order'] = daily_pattern['day_of_week'].apply(lambda x: day_order.index(x) if x in day_order else UNKNOWN_DAY_ORDER)
 daily_pattern = daily_pattern.sort_values('day_order')
-best_day = daily_pattern.loc[daily_pattern['total_sales'].idxmax(), 'day_of_week']
-print(f"\n6. Best Sales Day: {best_day}")
+
+best_day = None
+if not daily_pattern.empty:
+    best_day = daily_pattern.loc[daily_pattern['total_sales'].idxmax(), 'day_of_week']
+    print(f"\n6. Best Sales Day: {best_day}")
+else:
+    print("\n6. Best Sales Day: No daily data available")
+
 print("\n   Sales by Day of Week:")
 for _, row in daily_pattern.iterrows():
     print(f"   {row['day_of_week']}: ${row['total_sales']:,.2f} ({row['transactions']} transactions)")
@@ -241,8 +255,14 @@ print("=" * 60)
 print(f"\nTotal transactions analyzed: {len(df)}")
 print(f"Total revenue: ${total_sales:,.2f}")
 print(f"Average transaction value: ${average_sales:.2f}")
-print(f"Peak sales hour: {int(peak_hour)}:00")
-print(f"Best sales day: {best_day}")
+if peak_hour is not None:
+    print(f"Peak sales hour: {int(peak_hour)}:00")
+else:
+    print("Peak sales hour: N/A")
+if best_day is not None:
+    print(f"Best sales day: {best_day}")
+else:
+    print("Best sales day: N/A")
 print(f"\nVisualization files generated:")
 print("  - top_5_products_by_sales.png")
 print("  - top_5_products_by_items_sold.png")
