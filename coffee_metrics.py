@@ -316,9 +316,9 @@ def analyze_pricing_optimization(df):
     # Target margin (70%)
     target_margin = 70
     price_analysis['margin_gap'] = target_margin - price_analysis['avg_margin']
+    # Simplified price increase calculation: price × (gap/100)
     price_analysis['suggested_increase'] = price_analysis.apply(
-        lambda row: (row['avg_price'] * (1 + row['margin_gap']/100)) - row['avg_price'] 
-        if row['margin_gap'] > 0 else 0, axis=1
+        lambda row: row['avg_price'] * row['margin_gap'] / 100 if row['margin_gap'] > 0 else 0, axis=1
     )
     
     print("\nPricing Analysis:")

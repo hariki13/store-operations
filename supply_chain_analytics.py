@@ -80,8 +80,12 @@ def calculate_inventory_turnover(df):
     for _, row in avg_daily_sales.iterrows():
         print(f"  {row['coffee_name']:<15} : {row['avg_daily_sales']:.1f} units/day")
     
-    # Estimated inventory turnover (assuming 7-day average inventory)
-    avg_daily_sales['est_turnover_rate'] = (avg_daily_sales['avg_daily_sales'] * 365) / (avg_daily_sales['avg_daily_sales'] * 7)
+    # Calculate inventory turnover rate: Annual Sales / Average Inventory
+    # Average inventory estimated as 7 days of safety stock
+    total_avg_daily = avg_daily_sales['avg_daily_sales'].sum()
+    avg_daily_sales['sales_share'] = avg_daily_sales['avg_daily_sales'] / total_avg_daily
+    # Higher velocity products have higher turnover (annual sales / base inventory)
+    avg_daily_sales['est_turnover_rate'] = (avg_daily_sales['avg_daily_sales'] * 365) / (avg_daily_sales['avg_daily_sales'].mean() * 7)
     avg_daily_sales['est_turnover_rate'] = avg_daily_sales['est_turnover_rate'].round(1)
     
     print("\nEstimated Annual Inventory Turnover Rate:")
@@ -110,10 +114,8 @@ def calculate_reorder_points(df, lead_time_days=3, safety_stock_days=2):
     demand_stats = daily_demand.groupby('coffee_name')['units'].agg(['mean', 'std']).reset_index()
     demand_stats.columns = ['coffee_name', 'avg_demand', 'std_demand']
     
-    # Calculate reorder point
-    demand_stats['reorder_point'] = (demand_stats['avg_demand'] * lead_time_days) + \
-                                    (demand_stats['avg_demand'] * safety_stock_days)
-    demand_stats['reorder_point'] = demand_stats['reorder_point'].round(0).astype(int)
+    # Calculate reorder point: Avg Demand × (Lead Time + Safety Stock Days)
+    demand_stats['reorder_point'] = (demand_stats['avg_demand'] * (lead_time_days + safety_stock_days)).round(0).astype(int)
     
     # Calculate safety stock
     demand_stats['safety_stock'] = (demand_stats['avg_demand'] * safety_stock_days).round(0).astype(int)
