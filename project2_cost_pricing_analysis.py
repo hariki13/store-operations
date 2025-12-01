@@ -248,7 +248,9 @@ print("Saved 'monthly_profit_contribution.png'")
 fig, ax = plt.subplots(figsize=(10, 6))
 units_range = np.linspace(0, 10000, 100)
 total_revenue = units_range * weighted_avg_price
-total_costs = total_fixed_costs + (units_range * (weighted_avg_price - weighted_avg_contribution))
+# Variable cost per unit = selling price - contribution margin
+weighted_avg_variable_cost = weighted_avg_price - weighted_avg_contribution
+total_costs = total_fixed_costs + (units_range * weighted_avg_variable_cost)
 
 ax.plot(units_range, total_revenue, 'b-', linewidth=2, label='Total Revenue')
 ax.plot(units_range, total_costs, 'r-', linewidth=2, label='Total Costs')
@@ -270,11 +272,7 @@ print("Saved 'break_even_analysis.png'")
 # 8e. Cost Structure Pie Chart
 fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
-# Overall cost structure
-total_raw = df_costs['raw_material_cost'].sum() * df_costs['monthly_sales_volume'].sum() / len(df_costs)
-total_labor = df_costs['labor_cost'].sum() * df_costs['monthly_sales_volume'].sum() / len(df_costs)
-total_overhead = df_costs['overhead_cost'].sum() * df_costs['monthly_sales_volume'].sum() / len(df_costs)
-
+# Average cost structure per drink (variable costs + allocated fixed costs)
 cost_categories = ['Raw Materials', 'Labor', 'Overhead', 'Fixed Costs']
 cost_values = [df_costs['raw_material_cost'].mean(), 
                df_costs['labor_cost'].mean(),
@@ -285,10 +283,10 @@ colors = ['#8B4513', '#CD853F', '#DEB887', '#F4A460']
 axes[0].pie(cost_values, labels=cost_categories, autopct='%1.1f%%', colors=colors, startangle=90)
 axes[0].set_title('Average Cost Structure per Drink', fontsize=12)
 
-# Revenue vs costs breakdown
+# Revenue distribution breakdown (Variable Costs + Fixed Costs + Net Profit = Total Revenue)
+net_profit = total_monthly_revenue - total_monthly_cost - total_fixed_costs
 revenue_cost = ['Variable Costs', 'Fixed Costs', 'Net Profit']
-revenue_values = [total_monthly_cost, total_fixed_costs, 
-                  total_monthly_profit - total_fixed_costs]
+revenue_values = [total_monthly_cost, total_fixed_costs, net_profit]
 colors2 = ['#FF6B6B', '#FFA500', '#4CAF50']
 axes[1].pie(revenue_values, labels=revenue_cost, autopct='%1.1f%%', colors=colors2, startangle=90)
 axes[1].set_title('Monthly Revenue Distribution', fontsize=12)
