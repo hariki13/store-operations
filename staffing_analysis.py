@@ -98,7 +98,7 @@ def generate_staffing_recommendations(hourly_analysis, base_staff=2):
     min_transactions = hourly_analysis['transaction_count'].min()
     
     def calculate_staff(row):
-        if max_transactions == min_transactions:
+        if max_transactions == min_transactions or max_transactions == 0:
             return base_staff
         
         # Normalize transaction count to staff level
@@ -159,6 +159,7 @@ def create_visualizations(hourly_analysis, daily_analysis, output_prefix='staffi
     plt.tight_layout()
     plt.savefig(f'{output_prefix}_analysis.png', dpi=150)
     print(f"\nSaved '{output_prefix}_analysis.png'")
+    plt.close(fig)
     
     return fig
 
