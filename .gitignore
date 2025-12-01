@@ -16,3 +16,33 @@ _site/
 # counterproductive to check this file into the repository.
 # Details at https://github.com/github/pages-gem/issues/768
 Gemfile.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.so
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Data files (keep your source data, but ignore generated outputs)
+*.csv
+!coffee sales dataset.csv
+
+# Generated images from analysis
+*.png
+*.jpg
+*.jpeg
+
+# Virtual environments
+venv/
+env/
+.env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
