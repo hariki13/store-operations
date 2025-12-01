@@ -253,15 +253,25 @@ class CoffeeRoastery:
         """
         df = self.green_bean_inventory
         if df.empty:
-            return pd.DataFrame(columns=['bean_type', 'total_quantity_kg', 'avg_cost_per_kg', 'total_value'])
+            return pd.DataFrame(columns=['bean_type', 'total_quantity_kg', 'weighted_avg_cost_per_kg', 'total_value'])
 
-        summary = df.groupby('bean_type').agg({
+        # Filter to only include records with remaining quantity
+        df_remaining = df[df['quantity_kg'] > 0].copy()
+        if df_remaining.empty:
+            return pd.DataFrame(columns=['bean_type', 'total_quantity_kg', 'weighted_avg_cost_per_kg', 'total_value'])
+
+        # Calculate weighted average cost using remaining quantity * cost_per_kg
+        df_remaining['remaining_value'] = df_remaining['quantity_kg'] * df_remaining['cost_per_kg']
+        
+        summary = df_remaining.groupby('bean_type').agg({
             'quantity_kg': 'sum',
-            'cost_per_kg': 'mean',
-            'total_cost': 'sum'
+            'remaining_value': 'sum'
         }).reset_index()
-        summary.columns = ['bean_type', 'total_quantity_kg', 'avg_cost_per_kg', 'total_value']
-        summary = summary[summary['total_quantity_kg'] > 0]
+        
+        # Calculate weighted average: remaining_value / remaining_quantity
+        summary['weighted_avg_cost_per_kg'] = summary['remaining_value'] / summary['quantity_kg']
+        summary.columns = ['bean_type', 'total_quantity_kg', 'total_value', 'weighted_avg_cost_per_kg']
+        summary = summary[['bean_type', 'total_quantity_kg', 'weighted_avg_cost_per_kg', 'total_value']]
         return summary
 
     def get_roasted_bean_inventory_summary(self):
@@ -273,14 +283,17 @@ class CoffeeRoastery:
         """
         df = self.roasted_bean_inventory
         if df.empty:
-            return pd.DataFrame(columns=['bean_type', 'total_roasted_kg', 'avg_cost_per_kg', 'total_cost'])
+            return pd.DataFrame(columns=['bean_type', 'total_roasted_kg', 'weighted_avg_cost_per_kg', 'total_cost'])
 
+        # Calculate weighted average cost per kg based on quantities
         summary = df.groupby('bean_type').agg({
             'roasted_bean_kg': 'sum',
-            'cost_per_kg_roasted': 'mean',
             'total_cost': 'sum'
         }).reset_index()
-        summary.columns = ['bean_type', 'total_roasted_kg', 'avg_cost_per_kg', 'total_cost']
+        # Calculate weighted average: total_cost / total_roasted_kg
+        summary['weighted_avg_cost_per_kg'] = summary['total_cost'] / summary['roasted_bean_kg']
+        summary.columns = ['bean_type', 'total_roasted_kg', 'total_cost', 'weighted_avg_cost_per_kg']
+        summary = summary[['bean_type', 'total_roasted_kg', 'weighted_avg_cost_per_kg', 'total_cost']]
         return summary
 
     def get_weight_loss_report(self):
@@ -321,17 +334,26 @@ class CoffeeRoastery:
                 'message': 'No roasting cost records available'
             }
 
+        # Calculate weighted average cost per kg roasted
+        total_cost = df['total_cost'].sum()
+        total_roasted_kg = df['roasted_bean_kg'].sum()
+        weighted_avg_cost = total_cost / total_roasted_kg if total_roasted_kg > 0 else 0
+
+        # Calculate weighted average by bean type
+        by_type = df.groupby('bean_type').agg({
+            'green_bean_cost': 'sum',
+            'roasting_cost': 'sum',
+            'total_cost': 'sum',
+            'roasted_bean_kg': 'sum'
+        })
+        by_type['weighted_avg_cost_per_kg'] = by_type['total_cost'] / by_type['roasted_bean_kg']
+
         return {
             'total_green_bean_cost': round(df['green_bean_cost'].sum(), 2),
             'total_roasting_cost': round(df['roasting_cost'].sum(), 2),
-            'total_cost': round(df['total_cost'].sum(), 2),
-            'average_cost_per_kg_roasted': round(df['cost_per_kg_roasted'].mean(), 2),
-            'by_bean_type': df.groupby('bean_type').agg({
-                'green_bean_cost': 'sum',
-                'roasting_cost': 'sum',
-                'total_cost': 'sum',
-                'cost_per_kg_roasted': 'mean'
-            }).to_dict()
+            'total_cost': round(total_cost, 2),
+            'weighted_avg_cost_per_kg_roasted': round(weighted_avg_cost, 2),
+            'by_bean_type': by_type[['green_bean_cost', 'roasting_cost', 'total_cost', 'weighted_avg_cost_per_kg']].to_dict()
         }
 
     def calculate_selling_price(self, cost_per_kg_roasted, profit_margin_percent=30):
@@ -489,11 +511,11 @@ if __name__ == "__main__":
     print(f"Total green bean cost: ${cost_report['total_green_bean_cost']}")
     print(f"Total roasting cost: ${cost_report['total_roasting_cost']}")
     print(f"TOTAL COST: ${cost_report['total_cost']}")
-    print(f"Average cost per kg roasted: ${cost_report['average_cost_per_kg_roasted']}")
+    print(f"Weighted average cost per kg roasted: ${cost_report['weighted_avg_cost_per_kg_roasted']}")
 
     # --- Step 7: Calculate selling price ---
     print("\n--- STEP 7: Pricing Calculation ---")
-    avg_cost = cost_report['average_cost_per_kg_roasted']
+    avg_cost = cost_report['weighted_avg_cost_per_kg_roasted']
     pricing = roastery.calculate_selling_price(avg_cost, profit_margin_percent=40)
     print(f"Cost per kg: ${pricing['cost_per_kg']}")
     print(f"Profit margin: {pricing['profit_margin_percent']}%")
